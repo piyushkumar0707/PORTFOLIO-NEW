@@ -8,6 +8,7 @@ const projects = [
     color: 'from-emerald-400 to-cyan-500',
     borderColor: 'hover:border-emerald-500/40',
     glowColor: 'hover:shadow-emerald-500/10',
+    glowRaw: 'rgba(52,211,153,0.15)',
     metrics: [
       { val: '100+', label: 'REST APIs' },
       { val: '200+', label: 'Patient Profiles' },
@@ -33,6 +34,7 @@ const projects = [
     color: 'from-blue-400 to-indigo-500',
     borderColor: 'hover:border-blue-500/40',
     glowColor: 'hover:shadow-blue-500/10',
+    glowRaw: 'rgba(59,130,246,0.15)',
     metrics: [
       { val: '25+', label: 'REST APIs' },
       { val: '5', label: 'Microservices' },
@@ -58,6 +60,7 @@ const projects = [
     color: 'from-purple-400 to-pink-500',
     borderColor: 'hover:border-purple-500/40',
     glowColor: 'hover:shadow-purple-500/10',
+    glowRaw: 'rgba(168,85,247,0.15)',
     metrics: [
       { val: 'Live', label: 'Virtual Classes' },
       { val: 'Real-time', label: 'Notifications' },
@@ -83,6 +86,7 @@ const projects = [
     color: 'from-orange-400 to-rose-500',
     borderColor: 'hover:border-orange-500/40',
     glowColor: 'hover:shadow-orange-500/10',
+    glowRaw: 'rgba(251,146,60,0.15)',
     metrics: [
       { val: 'AI', label: 'Packing Lists' },
       { val: 'Mapbox', label: 'Interactive Maps' },
@@ -119,10 +123,26 @@ export default function Projects() {
           {projects.map((p) => (
             <div
               key={p.id}
-              className={`glass rounded-2xl p-6 border border-white/5 transition-all duration-400 cursor-default group ${p.borderColor} ${p.glowColor} hover:shadow-2xl reveal`}
+              className="glass rounded-2xl p-6 border border-white/5 cursor-default group relative overflow-hidden reveal group-hover:border-transparent"
+              style={{ transition: 'box-shadow 0.5s ease, border-color 0.5s ease, transform 0.3s ease' }}
+              onMouseEnter={e => {
+                e.currentTarget.style.boxShadow = `0 0 0 1px ${p.glowRaw}, 0 20px 50px ${p.glowRaw}`;
+                e.currentTarget.style.transform = 'translateY(-3px)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
             >
+              {/* Top gradient strip */}
+              <div className={`absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r ${p.color} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+              {/* Inner radial glow */}
+              <div
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-2xl"
+                style={{ background: `radial-gradient(600px circle at 0% 0%, ${p.glowRaw}, transparent 40%)` }}
+              />
               {/* Header */}
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start justify-between mb-4 relative">
                 <div>
                   <div className={`text-xs font-mono uppercase tracking-widest bg-gradient-to-r ${p.color} bg-clip-text text-transparent mb-1`}>
                     {p.subtitle}
@@ -163,9 +183,21 @@ export default function Projects() {
               <p className="text-slate-400 text-sm leading-relaxed mb-5">{p.desc}</p>
 
               {/* Metrics */}
-              <div className="grid grid-cols-4 gap-2 mb-5">
+              <div className="grid grid-cols-4 gap-2 mb-5 relative">
                 {p.metrics.map(m => (
-                  <div key={m.label} className="bg-dark-700/50 rounded-xl p-2 text-center border border-white/5">
+                  <div
+                    key={m.label}
+                    className="bg-dark-700/50 rounded-xl p-2 text-center border border-white/5 cursor-default"
+                    style={{ transition: 'box-shadow 0.4s ease, transform 0.3s ease' }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.boxShadow = `0 0 0 1px ${p.glowRaw}, 0 10px 30px ${p.glowRaw}`;
+                      e.currentTarget.style.transform = 'translateY(-3px)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.boxShadow = 'none';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                  >
                     <div className={`text-sm font-bold bg-gradient-to-r ${p.color} bg-clip-text text-transparent`}>{m.val}</div>
                     <div className="text-slate-500 text-xs mt-0.5">{m.label}</div>
                   </div>
@@ -183,9 +215,9 @@ export default function Projects() {
               </ul>
 
               {/* Tech Stack */}
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1.5 relative">
                 {p.tech.map(t => (
-                  <span key={t} className="code-chip !text-slate-400 !bg-dark-700/50 !border-white/10">{t}</span>
+                  <span key={t} className="text-xs px-3 py-1 rounded-md font-mono font-medium bg-dark-700/60 border border-white/8 text-slate-300 hover:text-white hover:border-white/20 transition-all duration-200 cursor-default">{t}</span>
                 ))}
               </div>
             </div>

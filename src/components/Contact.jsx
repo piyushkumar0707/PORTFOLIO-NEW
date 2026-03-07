@@ -9,6 +9,8 @@ const contactLinks = [
     value: 'piyushkumar0707',
     href: 'https://github.com/piyushkumar0707',
     color: 'hover:border-slate-400/40 hover:text-white',
+    glowRaw: 'rgba(148,163,184,0.15)',
+    stripColor: 'from-slate-400 to-zinc-500',
   },
   {
     icon: (
@@ -20,6 +22,8 @@ const contactLinks = [
     value: 'piyush-kumar-singh',
     href: 'https://www.linkedin.com/in/piyush-kumar-singh-702360287/',
     color: 'hover:border-blue-400/40 hover:text-blue-400',
+    glowRaw: 'rgba(59,130,246,0.15)',
+    stripColor: 'from-blue-400 to-indigo-500',
   },
   {
     icon: (
@@ -31,6 +35,8 @@ const contactLinks = [
     value: '121piyush466mits@gmail.com',
     href: 'mailto:121piyush466mits@gmail.com',
     color: 'hover:border-brand-cyan/40 hover:text-brand-cyan',
+    glowRaw: 'rgba(0,242,254,0.15)',
+    stripColor: 'from-brand-cyan to-brand-purple',
   },
   {
     icon: (
@@ -42,6 +48,8 @@ const contactLinks = [
     value: 'codolio.com/profile/piyush_07',
     href: 'https://codolio.com/profile/piyush_07',
     color: 'hover:border-brand-purple/40 hover:text-brand-purple',
+    glowRaw: 'rgba(123,47,247,0.15)',
+    stripColor: 'from-brand-purple to-brand-pink',
   },
 ];
 
@@ -96,19 +104,33 @@ export default function Contact() {
               href={link.href}
               target={link.label !== 'Email' ? '_blank' : undefined}
               rel="noopener noreferrer"
-              className={`glass rounded-xl p-4 border border-white/5 flex flex-col items-center gap-2 text-slate-400 transition-all duration-300 ${link.color}`}
+              className={`glass rounded-xl p-4 border border-white/5 flex flex-col items-center gap-2 text-slate-400 group relative overflow-hidden ${link.color}`}
+              style={{ transition: 'box-shadow 0.5s ease, border-color 0.5s ease, transform 0.3s ease' }}
+              onMouseEnter={e => {
+                e.currentTarget.style.boxShadow = `0 0 0 1px ${link.glowRaw}, 0 20px 50px ${link.glowRaw}`;
+                e.currentTarget.style.transform = 'translateY(-3px)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
             >
-              {link.icon}
-              <div className="text-xs font-semibold">{link.label}</div>
-              <div className="text-xs text-slate-500 text-center truncate w-full max-w-full">{link.value}</div>
+              <div className={`absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r ${link.stripColor} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+              <div
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none rounded-xl"
+                style={{ background: `radial-gradient(400px circle at 50% 0%, ${link.glowRaw}, transparent 60%)` }}
+              />
+              <span className="relative">{link.icon}</span>
+              <div className="text-xs font-semibold relative">{link.label}</div>
+              <div className="text-xs text-slate-500 text-center truncate w-full max-w-full relative">{link.value}</div>
             </a>
           ))}
         </div>
 
-        {/* Phone */}
+        {/* Location & Email */}
         <div className="mt-8 reveal">
           <p className="text-slate-600 text-sm">
-            📞 <span className="text-slate-500">+91-9893894132</span>
+            ✉️ <span className="text-slate-500">121piyush466mits@gmail.com</span>
             <span className="mx-3">·</span>
             📍 <span className="text-slate-500">Gwalior, Madhya Pradesh, India</span>
           </p>
