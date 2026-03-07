@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 const SCRIPT = [
   { type: 'cmd',     text: 'whoami' },
@@ -17,29 +17,112 @@ const SCRIPT = [
 ];
 
 const RESUMES = [
-  { label: 'Backend / SDE',      sub: 'Node.js · Express · MongoDB · Docker', color: 'text-brand-cyan',   href: '#' },
-  { label: 'Full-Stack & Frontend', sub: 'React · Next.js · TypeScript · REST', color: 'text-brand-purple', href: '#' },
-  { label: 'AI / LLM',           sub: 'LLM Fine-tuning · RLHF · Python · RAG', color: 'text-brand-pink',   href: '#' },
+  { flag: '--backend',   label: 'Backend / SDE',        color: 'text-brand-cyan',   href: 'https://raw.githubusercontent.com/piyushkumar0707/PORTFOLIO-NEW/main/Piyush_Kumar_Singh_Backend_SDE.pdf' },
+  { flag: '--fullstack', label: 'Full-Stack & Frontend', color: 'text-brand-purple', href: 'https://raw.githubusercontent.com/piyushkumar0707/PORTFOLIO-NEW/main/Piyush_Kumar_Singh_FullStack_Frontend.pdf' },
+  { flag: '--ai',        label: 'AI / LLM',              color: 'text-brand-pink',   href: 'https://raw.githubusercontent.com/piyushkumar0707/PORTFOLIO-NEW/main/Piyush_Kumar_Singh_AI_LLM.pdf' },
 ];
 
 export default function Hero() {
   const [revealed, setRevealed]     = useState([]);
   const [typing, setTyping]         = useState(null);
-  const [resumeOpen, setResumeOpen] = useState(false);
-  const resumeRef                   = useRef(null);
-  const idx   = useRef(0);
-  const timer = useRef(null);
+  const [menuLines, setMenuLines]   = useState([]);   // typed-out menu lines
+  const [menuTyping, setMenuTyping] = useState(null); // { partial, type, optIdx }
+  const [menuReady, setMenuReady]   = useState(false); // user can click options
+  const [selected, setSelected]     = useState(0);
+  const [dlPhase, setDlPhase]           = useState(null); // null | 'typing' | 'success'
+  const [dlTyping, setDlTyping]         = useState('');
+  const [dlIndex, setDlIndex]           = useState(null);
+  const [successLines, setSuccessLines] = useState([]);
+  const [successTyping, setSuccessTyping] = useState(null);
+  const idx             = useRef(0);
+  const timer           = useRef(null);
+  const terminalRef     = useRef(null);
+  const terminalBodyRef = useRef(null);
 
-  // Close dropdown on outside click
+  // (menu is triggered by Resume button, not auto-shown)
+
+  const triggerDownload = useCallback((i) => {
+    clearInterval(timer.current);
+    clearTimeout(timer.current);
+    setMenuReady(false);
+    setMenuTyping(null);
+    setDlIndex(i);
+    setDlTyping('');
+    setDlPhase('typing');
+    const cmd = `download resume ${RESUMES[i].flag}`;
+    let char = 0;
+    // Small delay so the typing state settles before chars start appearing
+    timer.current = setTimeout(() => {
+      timer.current = setInterval(() => {
+        char++;
+        setDlTyping(cmd.slice(0, char));
+        // Auto-scroll terminal body to bottom so typing is always visible
+        if (terminalBodyRef.current) {
+          terminalBodyRef.current.scrollTop = terminalBodyRef.current.scrollHeight;
+        }
+        if (char >= cmd.length) {
+          clearInterval(timer.current);
+          timer.current = setTimeout(() => {
+            setDlPhase('success');
+            setSuccessLines([]);
+            setSuccessTyping(null);
+            if (RESUMES[i].href && RESUMES[i].href !== '#') {
+              window.open(RESUMES[i].href, '_blank', 'noopener,noreferrer');
+            }
+            // Animate success output lines
+            const slines = [
+              { text: `> Fetching ${RESUMES[i].label} resume...`, color: 'text-slate-400' },
+              { text: `> [####################] 100%  done`, color: 'text-green-400' },
+              { text: `> File: ${i === 0 ? 'Piyush_Kumar_Singh_Backend_SDE.pdf' : i === 1 ? 'Piyush_Kumar_Singh_FullStack_Frontend.pdf' : 'Piyush_Kumar_Singh_AI_LLM.pdf'}`, color: 'text-yellow-400' },
+              { text: `✓  PDF opened in new tab`, color: 'text-green-400 font-semibold' },
+            ];
+            let si = 0;
+            function typeSuccessLine() {
+              if (si >= slines.length) { setSuccessTyping(null); return; }
+              const sline = slines[si];
+              let sc = 0;
+              function tsc() {
+                sc++;
+                setSuccessTyping({ partial: sline.text.slice(0, sc), color: sline.color });
+                if (terminalBodyRef.current) terminalBodyRef.current.scrollTop = terminalBodyRef.current.scrollHeight;
+                if (sc < sline.text.length) {
+                  timer.current = setTimeout(tsc, 22);
+                } else {
+                  timer.current = setTimeout(() => {
+                    setSuccessLines(prev => [...prev, sline]);
+                    setSuccessTyping(null);
+                    si++;
+                    timer.current = setTimeout(typeSuccessLine, si === 2 ? 350 : 80);
+                  }, 80);
+                }
+              }
+              timer.current = setTimeout(tsc, 60);
+            }
+            timer.current = setTimeout(typeSuccessLine, 200);
+          }, 400);
+        }
+      }, 60);
+    }, 80);
+  }, []);
+
+  // Keyboard navigation
   useEffect(() => {
-    function handleClick(e) {
-      if (resumeRef.current && !resumeRef.current.contains(e.target)) {
-        setResumeOpen(false);
+    if (!menuReady || dlPhase !== null) return;
+    function handleKey(e) {
+      if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setSelected(s => (s - 1 + RESUMES.length) % RESUMES.length);
+      } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+        e.preventDefault();
+        setSelected(s => (s + 1) % RESUMES.length);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        triggerDownload(selected);
       }
     }
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [menuReady, dlPhase, selected, triggerDownload]);
 
   useEffect(() => {
     function processNext() {
@@ -104,7 +187,61 @@ export default function Hero() {
     }
   }
 
-  const done = revealed.length === SCRIPT.length && !typing;
+  const scriptDone = revealed.length === SCRIPT.length && !typing;
+
+  function openResumeMenu() {
+    if (!scriptDone) return;
+    clearInterval(timer.current);
+    clearTimeout(timer.current);
+    setMenuLines([]);
+    setMenuTyping(null);
+    setMenuReady(false);
+    setDlPhase(null);
+    setDlIndex(null);
+    setDlTyping('');
+    setSelected(0);
+    setTimeout(() => {
+      terminalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+
+    const MSCRIPT = [
+      { type: 'header', text: 'download role-specific resume:' },
+      { type: 'option', optIdx: 0, text: `download resume ${RESUMES[0].flag}` },
+      { type: 'option', optIdx: 1, text: `download resume ${RESUMES[1].flag}` },
+      { type: 'option', optIdx: 2, text: `download resume ${RESUMES[2].flag}` },
+    ];
+    let li = 0;
+
+    function typeNextLine() {
+      if (li >= MSCRIPT.length) {
+        setMenuTyping(null);
+        setMenuReady(true);
+        return;
+      }
+      const line = MSCRIPT[li];
+      let char = 0;
+      function typeChar() {
+        char++;
+        setMenuTyping({ partial: line.text.slice(0, char), type: line.type, optIdx: line.optIdx });
+        if (terminalBodyRef.current) {
+          terminalBodyRef.current.scrollTop = terminalBodyRef.current.scrollHeight;
+        }
+        if (char < line.text.length) {
+          timer.current = setTimeout(typeChar, 38);
+        } else {
+          timer.current = setTimeout(() => {
+            setMenuLines(prev => [...prev, line]);
+            setMenuTyping(null);
+            li++;
+            timer.current = setTimeout(typeNextLine, 80);
+          }, 120);
+        }
+      }
+      timer.current = setTimeout(typeChar, 20);
+    }
+
+    timer.current = setTimeout(typeNextLine, 120);
+  }
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-dark-900">
@@ -130,7 +267,9 @@ export default function Hero() {
         </h1>
 
         {/* Terminal window */}
-        <div className="max-w-2xl mx-auto mb-10 text-left rounded-xl overflow-hidden shadow-2xl"
+        <div
+          ref={terminalRef}
+          className="max-w-2xl mx-auto mb-10 text-left rounded-xl overflow-hidden shadow-2xl"
           style={{ boxShadow: '0 0 0 1px rgba(255,255,255,0.07), 0 30px 60px rgba(0,0,0,0.6)' }}
         >
           {/* Chrome bar */}
@@ -142,7 +281,10 @@ export default function Hero() {
           </div>
 
           {/* Terminal body */}
-          <div className="bg-[#0d0d18] px-5 py-5 font-mono text-sm leading-relaxed min-h-[220px]">
+          <div
+            ref={terminalBodyRef}
+            className="bg-[#0d0d18] px-5 py-5 font-mono text-sm leading-relaxed min-h-[220px] max-h-[420px] overflow-y-auto"
+          >
             <div className="space-y-0.5">
               {revealed.map((line, i) => renderLine(line, i))}
 
@@ -155,19 +297,119 @@ export default function Hero() {
                 </div>
               )}
 
-              {/* Idle cursor when done */}
-              {done && (
+              {/* Idle cursor — script done, menu not started */}
+              {!menuLines.length && !menuTyping && dlPhase === null && scriptDone && (
                 <div className="flex items-center gap-2">
                   <span className="text-brand-purple font-bold select-none">$</span>
                   <span className="inline-block w-[7px] h-[14px] bg-brand-cyan ml-0.5 animate-pulse" />
                 </div>
+              )}
+
+              {/* Animated menu reveal */}
+              {(menuLines.length > 0 || menuTyping) && dlPhase === null && (
+                <>
+                  {menuLines.map((line, i) =>
+                    line.type === 'header' ? (
+                      <div key={`mh-${i}`} className="flex items-center gap-2 mt-3">
+                        <span className="text-brand-purple font-bold select-none">$</span>
+                        <span className="text-slate-300">{line.text}</span>
+                      </div>
+                    ) : (
+                      <div
+                        key={`mo-${i}`}
+                        onClick={menuReady ? () => triggerDownload(line.optIdx) : undefined}
+                        onMouseEnter={menuReady ? () => setSelected(line.optIdx) : undefined}
+                        className={`flex items-center gap-2 pl-4 py-[2px] rounded transition-colors duration-100 ${
+                          menuReady ? 'cursor-pointer' : ''
+                        } ${menuReady && selected === line.optIdx ? 'bg-white/[0.07]' : ''}`}
+                      >
+                        <span className={`text-xs font-bold w-4 flex-shrink-0 ${
+                          menuReady && selected === line.optIdx ? 'text-slate-500' : 'opacity-0'
+                        }`}>
+                          ##
+                        </span>
+                        <span className="text-brand-purple font-bold select-none">$</span>
+                        <span className="text-slate-400">download resume&nbsp;</span>
+                        <span className={`font-semibold ${RESUMES[line.optIdx].color}`}>{RESUMES[line.optIdx].flag}</span>
+                        {menuReady && selected === line.optIdx && (
+                          <span className="inline-block w-[6px] h-[12px] bg-brand-cyan animate-pulse ml-0.5" />
+                        )}
+                      </div>
+                    )
+                  )}
+
+                  {/* Currently typing menu line */}
+                  {menuTyping && (
+                    <div className={`flex items-center gap-2 ${
+                      menuTyping.type === 'option' ? 'pl-4' : 'mt-3'
+                    }`}>
+                      <span className="text-brand-purple font-bold select-none">$</span>
+                      <span className={menuTyping.type === 'header' ? 'text-slate-300' : 'text-slate-400'}>
+                        {menuTyping.partial}
+                      </span>
+                      <span className="inline-block w-[7px] h-[14px] bg-brand-cyan animate-pulse" />
+                    </div>
+                  )}
+
+                  {/* Nav hint + idle cursor when ready */}
+                  {menuReady && (
+                    <>
+                      <div className="h-2" />
+                      <div className="text-slate-600 text-xs font-mono">
+                        ← ↑ ↓ → and ENTER &nbsp;&gt;&nbsp; to select role and download PDF resume
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+
+              {/* Download command typing */}
+              {dlPhase === 'typing' && (
+                <>
+                  <div className="h-2" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-brand-purple font-bold select-none">$</span>
+                    <span className="text-brand-cyan">{dlTyping}</span>
+                    <span className="inline-block w-[7px] h-[14px] bg-brand-cyan ml-0.5 animate-pulse" />
+                  </div>
+                </>
+              )}
+
+              {/* Download success */}
+              {dlPhase === 'success' && dlIndex !== null && (
+                <>
+                  <div className="h-2" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-brand-purple font-bold select-none">$</span>
+                    <span className="text-brand-cyan">{`download resume ${RESUMES[dlIndex].flag}`}</span>
+                  </div>
+                  {/* Animated success output */}
+                  {successLines.map((sl, i) => (
+                    <div key={i} className={`pl-5 ${sl.color} text-sm`}>{sl.text}</div>
+                  ))}
+                  {successTyping && (
+                    <div className={`pl-5 ${successTyping.color} text-sm flex items-center gap-1`}>
+                      {successTyping.partial}
+                      <span className="inline-block w-[6px] h-[13px] bg-green-400 animate-pulse" />
+                    </div>
+                  )}
+                  {!successTyping && successLines.length === 4 && (
+                    <>
+                      <div className="h-2" />
+                      <div className="flex items-center gap-2">
+                        <span className="text-brand-purple font-bold select-none">$</span>
+                        <span className="inline-block w-[7px] h-[14px] bg-brand-cyan ml-0.5 animate-pulse" />
+                      </div>
+                    </>
+                  )}
+                </>
               )}
             </div>
           </div>
         </div>
 
         {/* CTAs */}
-        <div className="flex flex-wrap justify-center gap-4 relative">
+        <div className="flex flex-wrap justify-center gap-4">
           <a href="#projects" className="btn-primary">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -186,56 +428,22 @@ export default function Hero() {
             </svg>
             Contact Me
           </a>
-
-          {/* Resume dropdown */}
-          <div className="relative" ref={resumeRef}>
-            <button
-              onClick={() => setResumeOpen(o => !o)}
-              className="btn-outline !border-emerald-500/50 !text-emerald-400 hover:!bg-emerald-500/10 hover:!border-emerald-400 flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Resume
-              <svg
-                className={`w-3.5 h-3.5 transition-transform duration-200 ${resumeOpen ? 'rotate-180' : ''}`}
-                fill="none" stroke="currentColor" viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {resumeOpen && (
-              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-72 glass rounded-xl border border-white/10 overflow-hidden shadow-2xl z-50"
-                style={{ boxShadow: '0 0 0 1px rgba(52,211,153,0.2), 0 20px 50px rgba(0,0,0,0.6)' }}
-              >
-                <div className="px-3 pt-3 pb-1">
-                  <p className="text-xs font-mono text-slate-500 uppercase tracking-widest mb-2 px-1">Choose Resume</p>
-                  {RESUMES.map(r => (
-                    <a
-                      key={r.label}
-                      href={r.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={() => setResumeOpen(false)}
-                      className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors duration-150 group"
-                    >
-                      <div>
-                        <div className={`text-sm font-semibold ${r.color}`}>{r.label}</div>
-                        <div className="text-xs text-slate-500 font-mono mt-0.5">{r.sub}</div>
-                      </div>
-                      <svg className="w-3.5 h-3.5 text-slate-600 group-hover:text-slate-400 flex-shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                      </svg>
-                    </a>
-                  ))}
-                </div>
-                <div className="px-4 py-2 border-t border-white/5">
-                  <p className="text-xs text-slate-600 text-center">Opens in new tab · PDF format</p>
-                </div>
-              </div>
+          <button
+            onClick={openResumeMenu}
+            disabled={!scriptDone}
+            className={`btn-outline !border-emerald-500/50 !text-emerald-400 hover:!bg-emerald-500/10 hover:!border-emerald-400 flex items-center gap-2 transition-opacity duration-300 ${
+              scriptDone ? 'opacity-100' : 'opacity-40 cursor-not-allowed'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Resume
+            {scriptDone && <span className="text-xs opacity-60">▾</span>}
+            {!scriptDone && (
+              <span className="inline-block w-[5px] h-[10px] bg-emerald-400/60 animate-pulse" />
             )}
-          </div>
+          </button>
         </div>
 
         {/* Scroll hint */}
