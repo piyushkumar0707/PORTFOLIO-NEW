@@ -75,7 +75,7 @@ const projects = [
     ],
     tech: ['React', 'Node.js', 'Express', 'MongoDB', 'JWT', 'Socket.io', 'Stripe'],
     github: 'https://github.com/piyushkumar0707/SikshaLink',
-    live: null,
+    live: 'https://siksha-link.vercel.app/',
   },
   {
     id: 'wanderlust',
