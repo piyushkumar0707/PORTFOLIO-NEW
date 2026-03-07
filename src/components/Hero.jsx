@@ -146,11 +146,29 @@ export default function Hero() {
           }
         }
         timer.current = setTimeout(typeChar, 40);
-      } else {
-        const delay = line.type === 'blank' ? 50 : 110;
+      } else if (line.type === 'blank') {
         setRevealed(prev => [...prev, line]);
         idx.current++;
-        timer.current = setTimeout(processNext, delay);
+        timer.current = setTimeout(processNext, 60);
+      } else {
+        // Type out output lines char by char
+        let char = 0;
+        const speed = line.type === 'commit' ? 28 : line.type === 'role' ? 32 : 22;
+        function typeOut() {
+          char++;
+          setTyping({ partial: line.text.slice(0, char), type: line.type, hash: line.hash });
+          if (char < line.text.length) {
+            timer.current = setTimeout(typeOut, speed);
+          } else {
+            timer.current = setTimeout(() => {
+              setRevealed(prev => [...prev, line]);
+              setTyping(null);
+              idx.current++;
+              timer.current = setTimeout(processNext, line.type === 'success' ? 120 : 80);
+            }, 80);
+          }
+        }
+        timer.current = setTimeout(typeOut, 40);
       }
     }
 
@@ -289,11 +307,34 @@ export default function Hero() {
               {revealed.map((line, i) => renderLine(line, i))}
 
               {/* Typing line */}
-              {typing && (
+              {typing && typing.type === 'cmd' && (
                 <div className="flex items-center gap-2">
                   <span className="text-brand-purple font-bold select-none">$</span>
                   <span className="text-brand-cyan">{typing.partial}</span>
                   <span className="inline-block w-[7px] h-[14px] bg-brand-cyan ml-0.5 animate-pulse" />
+                </div>
+              )}
+              {typing && typing.type === 'out' && (
+                <div className="flex items-center gap-1 text-slate-300 pl-5">
+                  {typing.partial}<span className="inline-block w-[6px] h-[13px] bg-slate-400 animate-pulse" />
+                </div>
+              )}
+              {typing && typing.type === 'role' && (
+                <div className="flex items-center gap-1 pl-5 font-semibold gradient-text">
+                  {typing.partial}<span className="inline-block w-[6px] h-[13px] bg-brand-cyan animate-pulse" />
+                </div>
+              )}
+              {typing && typing.type === 'commit' && (
+                <div className="flex items-start gap-3 pl-5">
+                  <span className="text-yellow-400 text-xs mt-0.5 flex-shrink-0">{typing.hash}</span>
+                  <span className="text-slate-300 flex items-center gap-1">
+                    {typing.partial}<span className="inline-block w-[6px] h-[13px] bg-slate-400 animate-pulse" />
+                  </span>
+                </div>
+              )}
+              {typing && typing.type === 'success' && (
+                <div className="flex items-center gap-1 pl-5 text-green-400 font-semibold">
+                  {typing.partial}<span className="inline-block w-[6px] h-[13px] bg-green-400 animate-pulse" />
                 </div>
               )}
 
@@ -446,13 +487,6 @@ export default function Hero() {
           </button>
         </div>
 
-        {/* Scroll hint */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 text-slate-600">
-          <span className="text-xs font-mono tracking-widest uppercase">scroll</span>
-          <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
       </div>
     </section>
   );
