@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://piyushkumar0707.github.io/PORTFOLIO-NEW/sitemap.xml
+Sitemap: https://piyush-singh.dev/sitemap.xml
