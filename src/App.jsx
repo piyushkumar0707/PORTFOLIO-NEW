@@ -9,6 +9,7 @@ import Projects from './components/Projects';
 import Skills from './components/Skills';
 import Achievements from './components/Achievements';
 import Contact from './components/Contact';
+import AskAI from './components/AskAI';
 
 function useScrollReveal() {
   useEffect(() => {
@@ -42,6 +43,7 @@ export default function App() {
         <Achievements />
         <Contact />
       </main>
+      <AskAI />
       <SpeedInsights />
       <Analytics />
     </div>
